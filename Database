@@ -1,0 +1,145 @@
+-- Crear la base de datos
+CREATE DATABASE puntoventaP;
+
+-- Conectar a la base de datos
+\c puntoventaP;
+
+-- Crear una tabla para administrador
+CREATE TABLE administrador (
+    id_administrador INT PRIMARY KEY,
+    nombre VARCHAR(20) NOT NULL,
+    apellido VARCHAR(20) NOT NULL,
+    usuario VARCHAR(20) NOT NULL,
+    contraseña VARCHAR(10) NOT NULL,
+    ventas INT
+);
+
+-- Crear una tabla para moderador
+CREATE TABLE moderador (
+    id_moderador INT PRIMARY KEY,
+    nombre VARCHAR(20) NOT NULL,
+    apellido VARCHAR(20) NOT NULL,
+    fechaRegistro DATE,
+    rol VARCHAR(20) NOT NULL,
+    telefono VARCHAR(20),
+    usuario VARCHAR(20) NOT NULL,
+    contraseña VARCHAR(10) NOT NULL
+);
+
+-- Crear una tabla para evento
+CREATE TABLE evento (
+    id_evento INT PRIMARY KEY,
+    nombre VARCHAR(100),
+    fechaYhora DATETIME,
+    descripcion TEXT
+);
+
+-- Crear una tabla para boletos
+CREATE TABLE boletos (
+    id_boleto INT PRIMARY KEY,
+    id_evento INT,
+    tipo VARCHAR(20),
+    precio DECIMAL(10,2),
+    cantidadDisp INT,
+    FOREIGN KEY (id_evento) REFERENCES evento(id_evento)
+);
+
+-- Crear una tabla para cliente
+CREATE TABLE cliente (
+    id_cliente INT PRIMARY KEY,
+    nombre VARCHAR(20),
+    apellido VARCHAR(20),
+    telefono VARCHAR(20)
+);
+
+-- Crear una tabla para ventaBoletos
+CREATE TABLE ventaBoletos (
+    id_venta INT PRIMARY KEY,
+    id_boleto INT,
+    cantidad INT,
+    fecha_venta DATETIME,
+    precioTotal DECIMAL(10,2),
+    metodoPago VARCHAR(20),
+    informacion_adicional TEXT
+);
+
+-- Crear una tabla para compra
+CREATE TABLE compra (
+    id_compra INT PRIMARY KEY,
+    id_boleto INT,
+    cantidad INT,
+    FHcompra DATETIME,
+    MetodoPago VARCHAR(50),
+    FOREIGN KEY (id_boleto) REFERENCES boletos(id_boleto)
+);
+
+-- Crear una tabla para pago
+CREATE TABLE pago (
+    id_pago INT PRIMARY KEY,
+    id_compra INT,
+    monto DECIMAL(10,2),
+    FHpago DATETIME,
+    metodoPago VARCHAR(50),
+    FOREIGN KEY (id_compra) REFERENCES compra(id_compra)
+);
+
+-- Crear una tabla para log de transacciones
+CREATE TABLE log_transacciones (
+    id SERIAL PRIMARY KEY,
+    transaccion_tipo VARCHAR(50),
+    transaccion_fecha TIMESTAMP,
+    detalles TEXT
+);
+
+-- Crear índices
+CREATE INDEX idx_nombre_evento ON evento(nombre);
+CREATE INDEX idx_tipo_boleto ON boletos(tipo);
+CREATE INDEX idx_nombre_cliente ON cliente(nombre);
+
+-- Roles
+CREATE ROLE admin;
+CREATE ROLE moderador;
+
+-- Asignar permisos a los roles
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO admin;
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO moderador;
+
+-- Ejemplo de transacción con inserciones y registro en log
+BEGIN;
+
+-- Insertar un nuevo evento
+INSERT INTO evento (id_evento, nombre, fechaYhora, descripcion) 
+VALUES (1, 'Concierto de Rock', '2024-06-15 20:00:00', 'Concierto de la banda XYZ');
+
+-- Registrar la transacción en el log
+INSERT INTO log_transacciones (transaccion_tipo, transaccion_fecha, detalles)
+VALUES ('INSERT', NOW(), 'Insertado evento Concierto de Rock con fecha 2024-06-15 20:00:00');
+
+-- Commit de la transacción
+COMMIT;
+
+-- Ejemplo de transacción con actualización y registro en log
+BEGIN;
+
+-- Actualizar el precio de un boleto
+UPDATE boletos SET precio = 49.99 WHERE id_boleto = 1;
+
+-- Registrar la transacción en el log
+INSERT INTO log_transacciones (transaccion_tipo, transaccion_fecha, detalles)
+VALUES ('UPDATE', NOW(), 'Actualizado precio del boleto con id 1 a 49.99');
+
+-- Commit de la transacción
+COMMIT;
+
+-- Ejemplo de transacción con eliminación y registro en log
+BEGIN;
+
+-- Eliminar un cliente
+DELETE FROM cliente WHERE id_cliente = 1;
+
+-- Registrar la transacción en el log
+INSERT INTO log_transacciones (transaccion_tipo, transaccion_fecha, detalles)
+VALUES ('DELETE', NOW(), 'Eliminado cliente con id 1');
+
+-- Commit de la transacción
+COMMIT;
